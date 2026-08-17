@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
@@ -16,14 +17,12 @@ jobs:
     name: Build and Deploy Job
 
     steps:
-      # Checkout repository
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: true
           lfs: false
 
-      # Use Node.js version required by Angular CLI
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -31,35 +30,30 @@ jobs:
           cache: 'npm'
           cache-dependency-path: './static-web-app/package-lock.json'
 
-      # Install Angular dependencies
       - name: Install dependencies
         working-directory: ./static-web-app
         run: npm ci
 
-      # Build Angular application
-      - name: Build Angular application
+      - name: Build Angular
         working-directory: ./static-web-app
         run: npm run build
 
-      # Deploy already-built Angular application
+      - name: Verify build output
+        run: |
+          echo "Build output:"
+          ls -la ./static-web-app/dist/static-web-app/browser
+
       - name: Deploy to Azure Static Web Apps
-        id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_PURPLE_BAY_0521CF600 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
 
-          # Angular project location
-          app_location: "./static-web-app"
+          # Point directly to the already-built Angular files
+          app_location: "./static-web-app/dist/static-web-app/browser"
 
-          # No API
-          api_location: ""
-
-          # Angular build output
-          output_location: "dist/static-web-app/browser"
-
-          # Do not build again using Azure/Oryx
+          # No additional build
           skip_app_build: true
 
   close_pull_request_job:
@@ -69,7 +63,6 @@ jobs:
 
     steps:
       - name: Close Pull Request
-        id: closepullrequest
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_PURPLE_BAY_0521CF600 }}
